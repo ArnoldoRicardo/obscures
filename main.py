@@ -52,7 +52,7 @@ def find(pattern, path):
 
 @app.command()
 def main():
-    f = open('lista.json')
+    f = open('data.json')
     data = json.load(f)
 
     for music in data:
