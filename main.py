@@ -15,12 +15,14 @@ from youtubesearchpython import VideosSearch
 
 app = typer.Typer()
 
+URL = 'https://open.spotify.com/playlist/37i9dQZF1DX32NsLKyzScr?si=wV-RgLsfTqi_oYdKxpWLdw'
+
 
 @app.command()
-def get_traks():
+def download_tracks_list(name='data', url=URL):
     driver = webdriver.Firefox()
 
-    driver.get("https://open.spotify.com/playlist/37i9dQZF1DWXLeA8Omikj7?si=fbdaa76c019a40f8")
+    driver.get(url)
     wait = WebDriverWait(driver, timeout=10, poll_frequency=1, ignored_exceptions=[
                          ElementNotVisibleException, ElementNotSelectableException])
     raw_total = wait.until(EC.element_to_be_clickable(
@@ -37,11 +39,11 @@ def get_traks():
         time.sleep(5)
 
     filter_to_save = [t.split('\n') for t in traks]
-    with open('data.json', 'w') as f:
+    with open(f'{name}.json', 'w') as f:
         json.dump(filter_to_save, f)
 
 
-def find(pattern, path):
+def find_file(pattern, path):
     result = []
     for root, dirs, files in os.walk(path):
         for name in files:
@@ -51,9 +53,12 @@ def find(pattern, path):
 
 
 @app.command()
-def main():
-    f = open('data.json')
+def download_tracks_from_list(file='data.json'):
+    f = open(file)
     data = json.load(f)
+    folder_name = file.split('.')[0]
+    if not os.path.exists(f"./{folder_name}"):
+        os.makedirs(f"./{folder_name}")
 
     for music in data:
         name = f'{music[0]} - {music[1]}'
@@ -61,13 +66,14 @@ def main():
         link = videos_search.result()['result'][0]['link']
         ydl_opts = {
             'format': 'bestaudio/best',
+            'outtmpl': f'{folder_name}/%(extractor)s-%(id)s-%(title)s.%(ext)s',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
             }],
         }
         code = link.split('=')[-1]
-        foud_files = find(f'*{code}.mp3', '.')
+        foud_files = find_file(f'./{folder_name}*{code}.mp3', '.')
         if len(foud_files) < 1:
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([link])
